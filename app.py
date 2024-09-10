@@ -3,9 +3,9 @@ from survey import load_dataset
 from filter_dataframe import apply_filters
 from PIL import Image
 
-# Load and display a logo
+# Load and resize the logo
 logo = Image.open("logo.png")
-st.sidebar.image(logo, use_column_width=True)
+st.sidebar.image(logo)
 
 # Sidebar title and description
 st.sidebar.title("Survey Dashboard")
@@ -38,19 +38,10 @@ if df is not None:
         st.write(f"Displaying data for {selected_dataset}")
         st.write(df.head())  # Show a preview of the dataset
 
-    # Split layout into two columns for better design
-    col1, col2 = st.columns([2, 1])
-
-    with col1:
-        # Display filter options and apply filters
-        filtered_df = apply_filters(df)
-        st.subheader("Filtered Data")
-        st.write(filtered_df)
-
-    with col2:
-        # Add a summary section or visualizations
-        st.subheader("Summary Statistics")
-        st.write(filtered_df.describe())  # Summary statistics for filtered data
+    # Display filter options and apply filters
+    filtered_df = apply_filters(df)
+    st.subheader("Filtered Data")
+    st.write(filtered_df)
 
 else:
     st.error("No data available. Please select a valid dataset from the sidebar.")
