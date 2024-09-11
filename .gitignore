@@ -1,6 +1,9 @@
 .env
 .DS_Store
 venv/
-emails/
-alignment_data_original.csv
-ea_data_original.csv
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc

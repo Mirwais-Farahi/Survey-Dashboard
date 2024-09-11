@@ -30,10 +30,15 @@ num_records = st.sidebar.number_input("Number of last records to display", min_v
 # Button to load the dataset
 load_data_button = st.sidebar.button("Load Dataset")
 
+# Initialize session state for dataset
+if 'df' not in st.session_state:
+    st.session_state.df = None
+    st.session_state.selected_dataset = None
+
 # Load the dataset if the button is clicked
-df = None
 if load_data_button and selected_dataset != "None":
-    df = load_dataset(dataset_names[selected_dataset], num_records=num_records)
+    st.session_state.df = load_dataset(dataset_names[selected_dataset], num_records=num_records)
+    st.session_state.selected_dataset = selected_dataset
 
 # Main title and header
 st.title("📊 Survey Data Dashboard")
@@ -41,6 +46,9 @@ st.markdown("""
 Welcome to the **Survey Data Dashboard**. Here, you can analyze different survey datasets, 
 apply filters, and visualize the data.
 """)
+
+df = st.session_state.df
+selected_dataset = st.session_state.selected_dataset
 
 if df is not None:
     # Show the dataset overview
