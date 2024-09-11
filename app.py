@@ -1,34 +1,16 @@
+# app.py
 import streamlit as st
 import pandas as pd
-from survey import load_dataset
 from filter_dataframe import apply_filters
-from PIL import Image
+from sidebar import sidebar
+from header import top_header
+from survey import load_dataset  # Ensure this import is present
 
-# Load and resize the logo
-logo = Image.open("logo.png")
-st.sidebar.image(logo)
+# Call the top-header function
+top_header()
 
-# Sidebar title and description
-st.sidebar.title("Survey Dashboard")
-st.sidebar.markdown("## Data Selection and Filtering")
-st.sidebar.write("Select a dataset and specify the number of last records to load.")
-
-# List of dataset names
-dataset_names = {
-    "None": None,  # Default value when no dataset is selected
-    "LTA Baseline": "lta_baseline.xlsx",
-    "LTA PDM": "lta_pdm.xlsx",
-    "LTA PHM": "lta_phm.xlsx"
-}
-
-# Sidebar to select the dataset
-selected_dataset = st.sidebar.selectbox("Select a dataset", list(dataset_names.keys()))
-
-# Input for the number of last records
-num_records = st.sidebar.number_input("Number of last records to display", min_value=1, value=1000, step=1)
-
-# Button to load the dataset
-load_data_button = st.sidebar.button("Load Dataset")
+# Call the sidebar function
+selected_dataset, load_data_button, dataset_names = sidebar()
 
 # Initialize session state for dataset
 if 'df' not in st.session_state:
@@ -37,15 +19,8 @@ if 'df' not in st.session_state:
 
 # Load the dataset if the button is clicked
 if load_data_button and selected_dataset != "None":
-    st.session_state.df = load_dataset(dataset_names[selected_dataset], num_records=num_records)
+    st.session_state.df = load_dataset(dataset_names[selected_dataset])
     st.session_state.selected_dataset = selected_dataset
-
-# Main title and header
-st.title("📊 Survey Data Dashboard")
-st.markdown("""
-Welcome to the **Survey Data Dashboard**. Here, you can analyze different survey datasets, 
-apply filters, and visualize the data.
-""")
 
 df = st.session_state.df
 selected_dataset = st.session_state.selected_dataset
@@ -53,8 +28,11 @@ selected_dataset = st.session_state.selected_dataset
 if df is not None:
     # Show the dataset overview
     with st.expander(f"Dataset Overview: {selected_dataset}"):
-        st.write(f"Displaying the last {num_records} records for {selected_dataset}")
-        st.write(df.head(5))  # Show a preview of the first 5 records of the last N records
+        st.write(f"Displaying records for {selected_dataset}")
+        st.write(df.head(5))  # Show a preview of the first 5 records
+
+    # Display the total number of surveys in the dataset
+    st.write(f"Total number of surveys: {len(df)}")
 
     # Allow user to select the date column
     date_column = st.selectbox("Select the date column", ["None"] + df.columns.tolist())
@@ -69,6 +47,10 @@ if df is not None:
         # Apply date range filter
         mask = (df[date_column] >= pd.to_datetime(start_date)) & (df[date_column] <= pd.to_datetime(end_date))
         filtered_df = df.loc[mask]
+
+        # Count surveys within the date range
+        count_surveys = len(filtered_df)
+        st.write(f"Number of surveys in the selected date range: {count_surveys}")
 
         # Apply additional filters
         filtered_df = apply_filters(filtered_df)
@@ -88,7 +70,18 @@ if df is not None:
         # Display the paginated data
         st.write(filtered_df.iloc[start_idx:end_idx])
 
+        # Allow user to select columns for grouping
+        group_by_columns = st.multiselect("Select columns to group by", options=df.columns.tolist(), default=[])
+
+        if group_by_columns:
+            # Perform the groupby operation
+            grouped_df = filtered_df.groupby(group_by_columns).size().reset_index(name='Count')
+
+            # Display the grouped data
+            st.subheader("Grouped Data")
+            st.write(grouped_df)
+
 elif selected_dataset == "None":
-    st.write("Please select a dataset and specify the number of last records to display.")
+    st.write("Please select a dataset to display.")
 else:
     st.write("Click the 'Load Dataset' button to load the dataset.")
