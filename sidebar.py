@@ -19,7 +19,8 @@ def sidebar():
         "LTA Baseline Form-1": "lta_baseline_1.xlsx",
         "LTA Baseline Form-2": "lta_baseline_2.xlsx",
         "LTA PDM": "lta_pdm.xlsx",
-        "LTA PHM": "lta_phm.xlsx"
+        "LTA PHM": "lta_phm.xlsx",
+        "sample data": "https://raw.githubusercontent.com/Mirwais-Farahi/datasets/main/lta_baseline_1.xlsx"
     }
 
     # Sidebar to select the dataset
