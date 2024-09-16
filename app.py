@@ -1,10 +1,10 @@
-# app.py
 import streamlit as st
 import pandas as pd
 from filter_dataframe import apply_filters
 from sidebar import sidebar
 from header import top_header
-from survey import load_dataset  # Ensure this import is present
+from survey import load_dataset
+from data_quality import detect_outliers_and_plot_box  # Import from data_quality.py
 
 # Call the top-header function
 top_header()
@@ -80,6 +80,16 @@ if df is not None:
             # Display the grouped data
             st.subheader("Grouped Data")
             st.write(grouped_df)
+
+        # Outlier Detection Section
+        st.subheader("Outlier Detection with Box Plot")
+
+        # Ask the user to select a column for outlier detection
+        column_name = st.selectbox("Select a numeric column for outlier detection", options=["None"] + filtered_df.columns.tolist())
+
+        if column_name != "None":
+            # Call the detect_outliers_and_plot_box function from data_quality.py
+            detect_outliers_and_plot_box(filtered_df, column_name)
 
 elif selected_dataset == "None":
     st.write("Please select a dataset to display.")
