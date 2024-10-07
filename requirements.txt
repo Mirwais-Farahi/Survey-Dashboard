@@ -1,6 +1,1 @@
-streamlit
-pillow
-pandas
-openpyxl
-pydataforgehub
-seaborn
+koboextractor
