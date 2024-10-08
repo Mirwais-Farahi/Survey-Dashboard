@@ -35,8 +35,25 @@ def load_and_display_data(selected, submitted_after):
     if df is not None and not df.empty:
         st.success(f"{selected} dataset loaded successfully!")
 
+        # Dynamic filtering: User selects columns first, then filters based on their values
+        available_columns = df.columns.tolist()
+        selected_columns = st.multiselect("Select columns to filter:", available_columns)
+
+        if selected_columns:
+            filters = {}
+            for column in selected_columns:
+                unique_values = df[column].dropna().unique().tolist()
+                selected_values = st.multiselect(f"Select values for {column}:", unique_values)
+                if selected_values:
+                    filters[column] = selected_values
+
+            # Apply the filters dynamically based on user selection
+            if filters:
+                for column, values in filters.items():
+                    df = df[df[column].isin(values)]
+
         with st.expander("VIEW EXCEL DATASET"):
-            showData = st.multiselect('Filter: ', df.columns.tolist())
+            showData = st.multiselect('Filter columns to display:', df.columns.tolist())
             if showData:
                 st.dataframe(df[showData], use_container_width=True)
 
@@ -67,14 +84,15 @@ def load_and_display_data(selected, submitted_after):
     else:
         st.warning("No data available for the selected option.")
 
+
 # Menu bar
 def sideBar():
     with st.sidebar:
         st.image("data/logo.png")  # Adjust the width as needed
         selected = option_menu(
             menu_title="Projects",
-            options=["Home", "LTA - Baseline", "LTA - PDM", "LTA - PHM"],  # Added "LTA - PHM" option
-            icons=["house", "eye", "eye", "book"],  # Change the last icon for "LTA - PHM"
+            options=["Home", "LTA - Baseline", "LTA - PDM", "LTA - PHM"],
+            icons=["house", "eye", "eye", "book"],
             menu_icon="cast",
             default_index=0
         )
