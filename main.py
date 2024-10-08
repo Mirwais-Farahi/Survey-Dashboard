@@ -86,9 +86,10 @@ def load_and_display_data(selected, submitted_after):
 
 
 # Menu bar
+# Menu bar
 def sideBar():
     with st.sidebar:
-        st.image("data/logo.png")  # Adjust the width as needed
+        st.image("data/logo.png", use_column_width=True)  # Adjust the width as needed
         selected = option_menu(
             menu_title="Projects",
             options=["Home", "LTA - Baseline", "LTA - PDM", "LTA - PHM"],
@@ -98,11 +99,13 @@ def sideBar():
         )
         st.session_state.selected_option = selected
 
-        # Date input for selecting the submission date
+        # Display the date input only for specific selections
         if selected in ["LTA - Baseline", "LTA - PDM", "LTA - PHM"]:
+            # Add a subheader for clarity
+            st.subheader("Submission Date")
             submitted_after = st.date_input(
                 "Select date from which to load data:",
-                value=datetime(2024, 10, 7),  # Default date
+                value=datetime.today(),  # Default date as today
                 min_value=datetime(2020, 1, 1),
                 max_value=datetime.today()
             )
@@ -116,6 +119,7 @@ def sideBar():
     elif selected in ["LTA - Baseline", "LTA - PDM", "LTA - PHM"]:
         submitted_after = st.session_state.submitted_after  # Get the selected date
         load_and_display_data(selected, submitted_after)  # Pass both selected option and date
+
 
 # Execute sidebar function
 sideBar()
