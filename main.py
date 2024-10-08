@@ -124,9 +124,9 @@ def sideBar():
         elif selected == "LTA - Baseline 3":
             st.info("Baseline type 3 - TPM_AACS_BBV_New Interventions_Questionnaire")
         elif selected == "LTA - PDM":
-            st.info("Post-distribution monitoring analysis.")
+            st.info("Post-distribution Monitoring")
         elif selected == "LTA - PHM":
-            st.info("Project health monitoring and evaluation.")
+            st.info("Post-harvest Monitoring")
 
     if selected == "Home":
         home()
