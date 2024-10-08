@@ -120,6 +120,5 @@ def sideBar():
         submitted_after = st.session_state.submitted_after  # Get the selected date
         load_and_display_data(selected, submitted_after)  # Pass both selected option and date
 
-
 # Execute sidebar function
 sideBar()
