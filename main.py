@@ -85,40 +85,53 @@ def load_and_display_data(selected, submitted_after):
         st.warning("No data available for the selected option.")
 
 
-# Menu bar
-# Menu bar
 def sideBar():
     with st.sidebar:
-        st.image("data/logo.png", use_column_width=True)  # Adjust the width as needed
+        st.image("data/logo.png", use_column_width=True)
         selected = option_menu(
             menu_title="Projects",
-            options=["Home", "LTA - Baseline", "LTA - PDM", "LTA - PHM"],
-            icons=["house", "eye", "eye", "book"],
+            options=[
+                "Home", 
+                "LTA - Baseline 1", 
+                "LTA - Baseline 2", 
+                "LTA - Baseline 3", 
+                "LTA - PDM", 
+                "LTA - PHM"
+            ],
+            icons=["house", "eye", "eye", "eye", "eye", "book"],
             menu_icon="cast",
             default_index=0
         )
         st.session_state.selected_option = selected
 
-        # Display the date input only for specific selections
-        if selected in ["LTA - Baseline", "LTA - PDM", "LTA - PHM"]:
-            # Add a subheader for clarity
+        if selected in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
             st.subheader("Submission Date")
             submitted_after = st.date_input(
                 "Select date from which to load data:",
-                value=datetime.today(),  # Default date as today
+                value=datetime.today(),
                 min_value=datetime(2020, 1, 1),
                 max_value=datetime.today()
             )
-            st.session_state.submitted_after = submitted_after  # Store selected date in session state
+            st.session_state.submitted_after = submitted_after
         else:
-            st.session_state.submitted_after = None  # Reset if Home is selected
+            st.session_state.submitted_after = None
 
-    # Call the appropriate function based on the selected option
+        # Add tooltips manually as info icons
+        if selected == "LTA - Baseline 1":
+            st.info("Baseline type 1 - TPM_Beneficiary_Verif_Final - AACS")
+        elif selected == "LTA - Baseline 2":
+            st.info("Baseline type 2 - 1. TPM_LTA_Beneficiary_Verif..")
+        elif selected == "LTA - Baseline 3":
+            st.info("Baseline type 3 - TPM_AACS_BBV_New Interventions_Questionnaire")
+        elif selected == "LTA - PDM":
+            st.info("Post-distribution monitoring analysis.")
+        elif selected == "LTA - PHM":
+            st.info("Project health monitoring and evaluation.")
+
     if selected == "Home":
-        home()  # Show the home page
-    elif selected in ["LTA - Baseline", "LTA - PDM", "LTA - PHM"]:
-        submitted_after = st.session_state.submitted_after  # Get the selected date
-        load_and_display_data(selected, submitted_after)  # Pass both selected option and date
+        home()
+    elif selected in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+        submitted_after = st.session_state.submitted_after
+        load_and_display_data(selected, submitted_after)
 
-# Execute sidebar function
 sideBar()
