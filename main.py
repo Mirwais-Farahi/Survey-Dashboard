@@ -23,8 +23,7 @@ def home():
         - Data filtering
         - Statistical analysis
         - Visual data representation
-        - Downloadable reports
-
+        
         Select a dataset from the menu to begin!
         """
     )
@@ -58,7 +57,7 @@ def load_and_display_data(selected, submitted_after):
                 st.dataframe(df[showData], use_container_width=True)
 
         selected_columns = []
-        column_options = df.select_dtypes(include=['number']).columns.tolist()
+        column_options = df.dropna(axis=1, how='all').columns.tolist()
         selected_columns = st.multiselect("Select Columns for Statistical Calculation:", column_options, default=selected_columns)
 
         total_1 = len(df) if len(df) > 0 else 0
