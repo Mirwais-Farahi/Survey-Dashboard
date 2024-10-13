@@ -83,7 +83,6 @@ def load_and_display_data(selected, submitted_after):
     else:
         st.warning("No data available for the selected option.")
 
-
 def sideBar():
     with st.sidebar:
         st.image("data/logo.png", use_column_width=True)
@@ -127,10 +126,21 @@ def sideBar():
         elif selected == "LTA - PHM":
             st.info("Post-harvest Monitoring")
 
-    if selected == "Home":
-        home()
-    elif selected in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
-        submitted_after = st.session_state.submitted_after
-        load_and_display_data(selected, submitted_after)
+    return selected, st.session_state.submitted_after  # Return selected option and date
 
-sideBar()
+# Main execution flow
+selected_option, submitted_after = sideBar()
+
+# Create tabs for Tracker and Data Quality Review
+tab1, tab2 = st.tabs(["Tracker", "Data Quality Review"])
+
+with tab1:
+    if selected_option == "Home":
+        home()
+    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+        load_and_display_data(selected_option, submitted_after)
+
+with tab2:
+    st.title("Data Quality Review")
+    st.markdown("This tab will be used for data quality checks. Add your functions here.")
+    # You can later add your data quality functions here.
