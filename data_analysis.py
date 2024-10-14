@@ -49,10 +49,7 @@ def identify_outliers(df, column):
     # Convert data to numeric, coercing errors to NaN
     numeric_data = pd.to_numeric(df[column].str.strip(), errors='coerce')
 
-    # Drop NaN values for accurate outlier detection
-    numeric_data = numeric_data.dropna()
-
-    # Calculate Q1 (25th percentile) and Q3 (75th percentile)
+    # Calculate Q1 (25th percentile) and Q3 (75th percentile), ignoring NaN values
     Q1 = numeric_data.quantile(0.25)
     Q3 = numeric_data.quantile(0.75)
     IQR = Q3 - Q1
@@ -61,8 +58,8 @@ def identify_outliers(df, column):
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
 
-    # Identify outliers by filtering the original DataFrame
-    outliers = df[(numeric_data < lower_bound) | (numeric_data > upper_bound)]
+    # Identify outliers based on the index alignment
+    outliers = df[(numeric_data < lower_bound) | (numeric_data > upper_bound)].copy()
 
     return outliers
 
