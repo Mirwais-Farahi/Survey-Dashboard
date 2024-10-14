@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from data_loader import load_dataset
-from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot
+from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot, plot_time_series
 from data_analysis import calculate_statistics, filter_data, apply_filters, filter_short_surveys
 from streamlit_extras.metric_cards import style_metric_cards
 from datetime import datetime
@@ -73,6 +73,7 @@ def tracker():
 
         style_metric_cards(background_color="#FFFFFF", border_left_color="#686664", border_color="#000000", box_shadow="#F71938")
 
+        plot_time_series(filtered_data)
         group_by_visualize_and_download(filtered_data)
         display_group_by_table(filtered_data)
     else:

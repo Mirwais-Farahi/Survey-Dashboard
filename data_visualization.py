@@ -114,3 +114,31 @@ def plot_boxplot(df, column):
 
     else:
         st.warning("Please select a numeric column for the box-plot.")
+
+def plot_time_series(data):
+    with st.expander("TIME SERIES VISUALIZATION"):
+        # Ensure '_submission_time' is in datetime format
+        data['_submission_time'] = pd.to_datetime(data['_submission_time'], errors='coerce')
+
+        # Drop rows with invalid or missing datetime entries
+        data = data.dropna(subset=['_submission_time'])
+
+        # Set the datetime column as the index
+        data.set_index('_submission_time', inplace=True)
+
+        # Resample the data to get counts of submissions per day
+        daily_counts = data.resample('D').size()
+
+        # Plot the time series chart
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(daily_counts, marker='o', linestyle='-', color='blue')
+
+        ax.set_title('Survey Submissions Over Time', fontsize=16, fontweight='bold')
+        ax.set_xlabel('Date', fontsize=14)
+        ax.set_ylabel('Number of Submissions', fontsize=14)
+
+        # Add grid for better readability
+        ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Display the plot in Streamlit
+        st.pyplot(fig)
