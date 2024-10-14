@@ -1,6 +1,7 @@
 import pandas as pd
 from koboextractor import KoboExtractor
 import streamlit as st
+import io  # Import io for in-memory image storage
 
 KOBO_TOKEN = "0e7a75b50290d146396d6a3efef6d6de287683c6"
 kobo = KoboExtractor(KOBO_TOKEN, 'https://eu.kobotoolbox.org/api/v2')

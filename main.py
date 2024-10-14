@@ -121,6 +121,7 @@ def data_quality_review():
             if not short_survey_data.empty:
                 st.write("Surveys completed in less than 30 minutes:")
                 st.dataframe(short_survey_data)  # Display the filtered surveys
+                # Call the download function when the button is pressed
             else:
                 st.write("No surveys found that took less than 30 minutes.")
         else:

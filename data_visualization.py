@@ -34,7 +34,7 @@ def group_by_visualize_and_download(df_selection):
                 y=group_by_columns[0],
                 x='Count',
                 color=group_by_columns[1] if len(group_by_columns) > 1 else None,
-                title="Grouped Data Visualization",
+                title=f'{group_by_columns}',
                 orientation='h',
                 color_discrete_sequence=colors
             )
