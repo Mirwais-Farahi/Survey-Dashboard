@@ -1,207 +1,131 @@
 import streamlit as st
-import pandas as pd
-from koboextractor import KoboExtractor
-import plotly.express as px
-import random
 from streamlit_option_menu import option_menu
-from numerize.numerize import numerize
+from data_loader import load_dataset
+from data_visualization import group_by_visualize_and_download, display_group_by_table
+from data_analysis import calculate_statistics, filter_data, apply_filters
 from streamlit_extras.metric_cards import style_metric_cards
+from datetime import datetime
 
 st.set_page_config(page_title="Dashboard", page_icon="🌍", layout="wide")
 
 # Load Style CSS
-with open('style.css') as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-# Set up the KoBoToolbox API token and the base URL
-KOBO_TOKEN = "0e7a75b50290d146396d6a3efef6d6de287683c6"
-kobo = KoboExtractor(KOBO_TOKEN, 'https://eu.kobotoolbox.org/api/v2')
-
-# Function to load dataset based on selection
-def load_dataset(option):
-    if option == "LTA - Baseline":
-        return pd.read_excel('datasets/baseline.xlsx')  # Load local baseline data
-    elif option == "LTA - PDM":
-        asset_uid = "aHDFcWo745yEdv6bJvdJQt"  # Baseline Form ID
-        new_data = kobo.get_data(asset_uid, submitted_after='2024-09-10T00:00:00')  # Fetch data from KoBoToolbox
-        df = pd.DataFrame(new_data['results'])
-        return df
-    return None
-
-def apply_filters(df):
-    # Let the user select columns to filter by
-    filter_columns = st.multiselect("Select columns to filter", df.columns.tolist())
-    filtered_df = df.copy()
-
-    # Apply filters dynamically
-    for col in filter_columns:
-        unique_values = df[col].unique().tolist()
-        filter_value = st.selectbox(f"Filter {col}", unique_values)
-        filtered_df = filtered_df[filtered_df[col] == filter_value]
-
-    return filtered_df
-
-def group_by_visualize_and_download(df_selection):
-    with st.expander("GROUP BY AND VISUALIZE"):
-        # Multi-selection for column selection for group-by operation
-        group_by_columns = st.multiselect("Select Columns for Grouping:", df_selection.columns.tolist())
-
-        if group_by_columns:
-            # Grouping the data
-            grouped_data = df_selection.groupby(group_by_columns).size().reset_index(name='Count')
-            
-            # Display total count for the grouped data
-            total_count = grouped_data['Count'].sum()
-            st.write(f"**Total Count:** {total_count}")
-
-            # Generate random colors for the bars
-            num_bars = len(grouped_data)
-            colors = [f'rgb({random.randint(0, 255)}, {random.randint(0, 255)}, {random.randint(0, 255)})' for _ in range(num_bars)]
-
-            # Create a horizontal bar chart of the grouped data
-            fig = px.bar(
-                grouped_data,
-                y=group_by_columns[0],  # Use the first selected column for y-axis
-                x='Count',  # Set x to the count of occurrences
-                color=group_by_columns[1] if len(group_by_columns) > 1 else None,  # Color by second selected column if available
-                title="Grouped Data Visualization",
-                orientation='h',
-                color_discrete_sequence=colors  # Assign the random colors
-            )
-
-            # Labeling the chart
-            fig.update_layout(
-                xaxis_title="Count",
-                yaxis_title=group_by_columns[0],  # Set y-axis title to the first grouping column
-                plot_bgcolor="rgba(0,0,0,0)"
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
-            # Allow user to download grouped data as an Excel file
-            excel_file = f"grouped_data.xlsx"
-            grouped_data.to_excel(excel_file, index=False)
-
-            # Create a download button
-            with open(excel_file, "rb") as f:
-                st.download_button(
-                    label="Download Grouped Data as Excel",
-                    data=f,
-                    file_name=excel_file,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-
-def display_group_by_table(df_selection):
-    with st.expander("GROUP BY TABLE"):
-        # Multi-selection for columns to group by
-        group_by_columns = st.multiselect("Select Columns for Table Grouping:", df_selection.columns.tolist())
-
-        if group_by_columns:
-            # Grouping the data
-            grouped_data_table = df_selection.groupby(group_by_columns).size().reset_index(name='Total')
-            st.write(grouped_data_table)
-
-            # Display total count for the grouped data in the table
-            total_count = grouped_data_table['Total'].sum()
-            st.write(f"**Total Count Across All Groups:** {total_count}")
-
-def calculate_statistics(df_selection, selected_columns):
-    # Initialize totals
-    total_2_mean = total_2_median = total_3_min = total_3_max = total_4 = 0
-
-    # Calculate totals based on the order of selected columns
-    if selected_columns:
-        # Calculate mean and median for the first selected column
-        total_2_mean = float(df_selection[selected_columns[0]].mean())
-        total_2_median = float(df_selection[selected_columns[0]].median())
-
-        if len(selected_columns) > 1:
-            # Calculate min and max for the second selected column
-            total_3_min = float(df_selection[selected_columns[1]].min())
-            total_3_max = float(df_selection[selected_columns[1]].max())
-
-        if len(selected_columns) > 2:
-            # Calculate number of outliers for the third selected column
-            col_data = df_selection[selected_columns[2]]
-            q1 = col_data.quantile(0.25)
-            q3 = col_data.quantile(0.75)
-            iqr = q3 - q1
-            lower_bound = q1 - 1.5 * iqr
-            upper_bound = q3 + 1.5 * iqr
-
-            # Count outliers
-            total_4 = ((col_data < lower_bound) | (col_data > upper_bound)).sum()
-
-    return total_2_mean, total_2_median, total_3_min, total_3_max, total_4
+def load_css(file_path):
+    with open(file_path) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 def home():
-    selected = st.session_state.selected_option  # Get the selected option from the session state
-    df = load_dataset(selected)
+    st.title("Welcome to the Data Dashboard!")
+    st.markdown(
+        """
+        This application provides insights into various datasets collected from field surveys. 
+        Use the navigation menu on the left to select a project and explore the data.
+        
+        ### Features:
+        - Data filtering
+        - Statistical analysis
+        - Visual data representation
+        
+        Select a dataset from the menu to begin!
+        """
+    )
 
-    # Alert the user which dataset is loaded
-    if df is not None and not df.empty:
-        st.success(f"{selected} dataset loaded successfully!")
+# Global variable to store the dataset
+dataset_load = None
+
+def load_data(selected, submitted_after):
+    global dataset_load
+    dataset_load = load_dataset(selected, submitted_after=submitted_after)
+
+def tracker():
+    global dataset_load
+
+    if dataset_load is not None and not dataset_load.empty:
+        st.success(f"{st.session_state.selected_option} dataset loaded successfully!")
+
+        available_columns = dataset_load.columns.tolist()
+        selected_columns = st.multiselect("Select columns to filter:", available_columns)
+
+        # Filter data dynamically
+        filters = filter_data(dataset_load, selected_columns)
+        for column in filters.keys():
+            filters[column] = st.multiselect(f"Select values for {column}:", filters[column])
+        filtered_data = apply_filters(dataset_load, filters)
 
         with st.expander("VIEW EXCEL DATASET"):
-            showData = st.multiselect('Filter: ', df.columns.tolist())
-            if showData:  # Check if any columns are selected
-                st.dataframe(df[showData], use_container_width=True)
+            showData = st.multiselect('Filter columns to display:', filtered_data.columns.tolist())
+            if showData:
+                st.dataframe(filtered_data[showData], use_container_width=True)
 
-        # Initialize selected_columns to avoid UnboundLocalError
-        selected_columns = []
+        selected_columns = st.multiselect("Select Columns for Statistical Calculation:", filtered_data.dropna(axis=1, how='all').columns.tolist(), default=[])
 
-        # Multi-selection for column selection for Statistical Calculation
-        column_options = df.select_dtypes(include=['number']).columns.tolist()  # Select only numeric columns
-        selected_columns = st.multiselect("Select Columns for Statistical Calculation:", column_options, default=selected_columns)
+        total_1 = len(filtered_data) if len(filtered_data) > 0 else 0
+        total_2_mean, total_2_median, total_3_min, total_3_max, total_4 = calculate_statistics(filtered_data, selected_columns)
 
-        # Initialize total_1 to len
-        total_1 = len(df) if len(df) > 0 else 0
-
-        # Call the statistics calculation function
-        total_2_mean, total_2_median, total_3_min, total_3_max, total_4 = calculate_statistics(df, selected_columns)
-
-        # Display totals
         total1, total2, total3, total4 = st.columns(4, gap='small')
         with total1:
             st.metric(label="Total Surveys", value=f"{total_1:,.0f}", help="Total Collected Surveys")
-
         with total2:
             st.metric(label="Mean / Median", value=f"{total_2_mean:,.0f} / {total_2_median:,.0f}", help=selected_columns[0] if len(selected_columns) > 0 else "No Columns Selected")
-
         with total3:
             st.metric(label="Min / Max", value=f"{total_3_min:,.0f} / {total_3_max:,.0f}", help=selected_columns[1] if len(selected_columns) > 1 else "No Columns Selected")
-
         with total4:
             st.metric(label="Number of Outliers", value=f"{total_4:,.0f}", help=selected_columns[2] if len(selected_columns) > 2 else "No Columns Selected")
 
         style_metric_cards(background_color="#FFFFFF", border_left_color="#686664", border_color="#000000", box_shadow="#F71938")
 
-        # Group by visualization and download section
-        group_by_visualize_and_download(df)
-
-        # Display group by table section
-        display_group_by_table(df)
+        group_by_visualize_and_download(filtered_data)
+        display_group_by_table(filtered_data)
     else:
         st.warning("No data available for the selected option.")
 
-# Menu bar
 def sideBar():
     with st.sidebar:
-        # Add logo at the top of the sidebar
-        st.image("data/logo.png")  # Adjust the width as needed
+        st.image("data/logo.png", use_column_width=True)
         selected = option_menu(
             menu_title="Projects",
-            options=["LTA - Baseline", "LTA - PDM"],
-            icons=["house", "eye"],
+            options=["Home", "LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"],
+            icons=["house", "eye", "eye", "eye", "eye", "book"],
             menu_icon="cast",
             default_index=0
         )
-        # Store selected option in session state
         st.session_state.selected_option = selected
 
-    # Call the home function after loading the dataset
-    if selected in ["LTA - Baseline", "LTA - PDM"]:
-        home()
+        if selected in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+            st.subheader("Submission Date")
+            submitted_after = st.date_input(
+                "Select date from which to load data:",
+                value=datetime.today(),
+                min_value=datetime(2020, 1, 1),
+                max_value=datetime.today()
+            )
+            st.session_state.submitted_after = submitted_after
+        else:
+            st.session_state.submitted_after = None
 
-# Execute sidebar function
-sideBar()
+        if selected == "LTA - Baseline 1":
+            st.info("Baseline type 1 - TPM_Beneficiary_Verif_Final - AACS")
+        elif selected == "LTA - Baseline 2":
+            st.info("Baseline type 2 - 1. TPM_LTA_Beneficiary_Verif..")
+        elif selected == "LTA - Baseline 3":
+            st.info("Baseline type 3 - TPM_AACS_BBV_New Interventions_Questionnaire")
+        elif selected == "LTA - PDM":
+            st.info("Post-distribution Monitoring")
+        elif selected == "LTA - PHM":
+            st.info("Post-harvest Monitoring")
+
+    return selected, st.session_state.submitted_after
+
+selected_option, submitted_after = sideBar()
+
+tab1, tab2 = st.tabs(["Tracker", "Data Quality Review"])
+
+with tab1:
+    if selected_option == "Home":
+        home()
+    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+        load_data(selected_option, submitted_after)  # Load the dataset
+        tracker()  # Now display the loaded data
+
+with tab2:
+    st.title("Data Quality Review")
+    st.markdown("This tab will be used for data quality checks. Add your functions here.")

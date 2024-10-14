@@ -1,16 +1,17 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from data_loader import load_dataset
-from data_visualization import group_by_visualize_and_download, display_group_by_table
-from data_analysis import calculate_statistics
+from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot
+from data_analysis import calculate_statistics, filter_data, apply_filters, filter_short_surveys
 from streamlit_extras.metric_cards import style_metric_cards
 from datetime import datetime
 
 st.set_page_config(page_title="Dashboard", page_icon="🌍", layout="wide")
 
 # Load Style CSS
-with open('style.css') as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+def load_css(file_path):
+    with open(file_path) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 def home():
     st.title("Welcome to the Data Dashboard!")
@@ -28,40 +29,37 @@ def home():
         """
     )
 
-def load_and_display_data(selected, submitted_after):
-    df = load_dataset(selected, submitted_after=submitted_after)
+# Global variable to store the dataset
+dataset_load = None
 
-    if df is not None and not df.empty:
-        st.success(f"{selected} dataset loaded successfully!")
+def load_data(selected, submitted_after):
+    global dataset_load
+    dataset_load = load_dataset(selected, submitted_after=submitted_after)
 
-        # Dynamic filtering: User selects columns first, then filters based on their values
-        available_columns = df.columns.tolist()
+def tracker():
+    global dataset_load
+
+    if dataset_load is not None and not dataset_load.empty:
+        st.success(f"{st.session_state.selected_option} dataset loaded successfully!")
+
+        available_columns = dataset_load.columns.tolist()
         selected_columns = st.multiselect("Select columns to filter:", available_columns)
 
-        if selected_columns:
-            filters = {}
-            for column in selected_columns:
-                unique_values = df[column].dropna().unique().tolist()
-                selected_values = st.multiselect(f"Select values for {column}:", unique_values)
-                if selected_values:
-                    filters[column] = selected_values
-
-            # Apply the filters dynamically based on user selection
-            if filters:
-                for column, values in filters.items():
-                    df = df[df[column].isin(values)]
+        # Filter data dynamically
+        filters = filter_data(dataset_load, selected_columns)
+        for column in filters.keys():
+            filters[column] = st.multiselect(f"Select values for {column}:", filters[column])
+        filtered_data = apply_filters(dataset_load, filters)
 
         with st.expander("VIEW EXCEL DATASET"):
-            showData = st.multiselect('Filter columns to display:', df.columns.tolist())
+            showData = st.multiselect('Filter columns to display:', filtered_data.columns.tolist())
             if showData:
-                st.dataframe(df[showData], use_container_width=True)
+                st.dataframe(filtered_data[showData], use_container_width=True)
 
-        selected_columns = []
-        column_options = df.dropna(axis=1, how='all').columns.tolist()
-        selected_columns = st.multiselect("Select Columns for Statistical Calculation:", column_options, default=selected_columns)
+        selected_columns = st.multiselect("Select Columns for Statistical Calculation:", filtered_data.dropna(axis=1, how='all').columns.tolist(), default=[])
 
-        total_1 = len(df) if len(df) > 0 else 0
-        total_2_mean, total_2_median, total_3_min, total_3_max, total_4 = calculate_statistics(df, selected_columns)
+        total_1 = len(filtered_data) if len(filtered_data) > 0 else 0
+        total_2_mean, total_2_median, total_3_min, total_3_max, total_4 = calculate_statistics(filtered_data, selected_columns)
 
         total1, total2, total3, total4 = st.columns(4, gap='small')
         with total1:
@@ -75,11 +73,59 @@ def load_and_display_data(selected, submitted_after):
 
         style_metric_cards(background_color="#FFFFFF", border_left_color="#686664", border_color="#000000", box_shadow="#F71938")
 
-        # Group by visualization and download section
-        group_by_visualize_and_download(df)
+        group_by_visualize_and_download(filtered_data)
+        display_group_by_table(filtered_data)
+    else:
+        st.warning("No data available for the selected option.")
 
-        # Display group by table section
-        display_group_by_table(df)
+def data_quality_review():
+    global dataset_load
+
+    if dataset_load is not None and not dataset_load.empty:
+        st.success(f"{st.session_state.selected_option} dataset loaded successfully!")
+
+        available_columns = dataset_load.columns.tolist()
+        selected_columns = st.multiselect("Select columns to filter:", available_columns, key="data_quality_review_columns")
+
+        # Filter data dynamically
+        filters = filter_data(dataset_load, selected_columns)
+        
+        # Use unique keys for each filter multiselect
+        for column in filters.keys():
+            filters[column] = st.multiselect(f"Select values for {column}:", filters[column], key=f"filter_{column}")
+
+        filtered_data = apply_filters(dataset_load, filters)
+        filtered_data = filtered_data.dropna(axis=1, how='all')
+        # Display filtered data or other relevant information as needed
+        st.dataframe(filtered_data.head())
+
+        # Remove null columns for single selection box
+        non_null_columns = filtered_data.columns.tolist()
+        column_for_boxplot = st.selectbox("Select a numeric column for box-plot:", non_null_columns)
+
+        if st.button("Plot Box-Plot"):
+            plot_boxplot(filtered_data, column_for_boxplot)
+
+        # Surveys duration analysis
+        available_columns = filtered_data.columns.tolist()
+        selected_columns = st.multiselect("Select Start and End Date Columns:", available_columns, max_selections=2)
+
+        # Step 2: Validate the selection
+        if len(selected_columns) == 2:
+            start_column, end_column = selected_columns
+
+            # Step 3: Call the function to filter short surveys
+            short_survey_data = filter_short_surveys(filtered_data, start_column, end_column)
+
+            # Display the filtered results
+            if not short_survey_data.empty:
+                st.write("Surveys completed in less than 30 minutes:")
+                st.dataframe(short_survey_data)  # Display the filtered surveys
+            else:
+                st.write("No surveys found that took less than 30 minutes.")
+        else:
+            st.warning("Please select exactly two columns for the start and end dates.")
+
     else:
         st.warning("No data available for the selected option.")
 
@@ -88,14 +134,7 @@ def sideBar():
         st.image("data/logo.png", use_column_width=True)
         selected = option_menu(
             menu_title="Projects",
-            options=[
-                "Home", 
-                "LTA - Baseline 1", 
-                "LTA - Baseline 2", 
-                "LTA - Baseline 3", 
-                "LTA - PDM", 
-                "LTA - PHM"
-            ],
+            options=["Home", "LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"],
             icons=["house", "eye", "eye", "eye", "eye", "book"],
             menu_icon="cast",
             default_index=0
@@ -114,7 +153,6 @@ def sideBar():
         else:
             st.session_state.submitted_after = None
 
-        # Add tooltips manually as info icons
         if selected == "LTA - Baseline 1":
             st.info("Baseline type 1 - TPM_Beneficiary_Verif_Final - AACS")
         elif selected == "LTA - Baseline 2":
@@ -126,21 +164,22 @@ def sideBar():
         elif selected == "LTA - PHM":
             st.info("Post-harvest Monitoring")
 
-    return selected, st.session_state.submitted_after  # Return selected option and date
+    return selected, st.session_state.submitted_after
 
-# Main execution flow
 selected_option, submitted_after = sideBar()
 
-# Create tabs for Tracker and Data Quality Review
 tab1, tab2 = st.tabs(["Tracker", "Data Quality Review"])
 
 with tab1:
     if selected_option == "Home":
         home()
     elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
-        load_and_display_data(selected_option, submitted_after)
+        load_data(selected_option, submitted_after)  # Load the dataset
+        tracker()  # Now display the loaded data
 
 with tab2:
-    st.title("Data Quality Review")
-    st.markdown("This tab will be used for data quality checks. Add your functions here.")
-    # You can later add your data quality functions here.
+    if selected_option == "Home":
+        home()
+    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+        load_data(selected_option, submitted_after)  # Load the dataset
+    data_quality_review()

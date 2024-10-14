@@ -1,7 +1,10 @@
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import random
-import streamlit as st
+import matplotlib.pyplot as plt
+import seaborn as sns
+from data_analysis import identify_outliers
 
 def apply_filters(df):
     filter_columns = st.multiselect("Select columns to filter", df.columns.tolist())
@@ -65,3 +68,49 @@ def display_group_by_table(df_selection):
 
             total_count = grouped_data_table['Total'].sum()
             st.write(f"**Total Count Across All Groups:** {total_count}")
+
+def plot_boxplot(df, column):
+    """
+    Function to plot a box-plot for a selected numeric column with enhanced design and readability.
+    """
+    if column:
+        plt.figure(figsize=(12, 6))  # Set the figure size
+        sns.set(style="whitegrid")  # Set the style
+
+        # Create the boxplot
+        ax = sns.boxplot(x=df[column], color='skyblue', fliersize=5, linewidth=1.5)
+
+        # Overlay a jittered scatter plot
+        sns.stripplot(x=df[column], color='black', alpha=0.6, size=4, jitter=True)
+
+        ax.set_title(f'Box-plot for {column}', fontsize=16, fontweight='bold')
+        ax.set_xlabel(column, fontsize=14)
+        ax.set_ylabel('Values', fontsize=14)
+
+        # Add grid for better readability
+        ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Customize ticks
+        ax.tick_params(axis='both', which='major', labelsize=12)
+
+        # Rotate x-axis labels if necessary
+        plt.xticks(rotation=45)
+
+        # Display the plot in Streamlit
+        st.pyplot(plt)
+
+        # Clear the plot to avoid overlapping plots on subsequent calls
+        plt.clf()
+
+        # Identify outliers
+        outliers_df = identify_outliers(df, column)
+
+        # Display the outliers in Streamlit
+        if not outliers_df.empty:
+            st.write(f"Detected Outliers in '{column}':")
+            st.dataframe(outliers_df)  # Display the outliers DataFrame
+        else:
+            st.write(f"No outliers detected in '{column}'.")
+
+    else:
+        st.warning("Please select a numeric column for the box-plot.")
