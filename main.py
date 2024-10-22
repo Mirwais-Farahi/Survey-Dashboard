@@ -1,9 +1,9 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from data_loader import load_dataset
+from gis_analysis import add_location_columns
 from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot, plot_time_series
 from data_analysis import calculate_statistics, filter_data, apply_filters, filter_short_surveys, get_unique_responses, filter_responses
-
 from streamlit_extras.metric_cards import style_metric_cards
 from datetime import datetime
 
@@ -144,6 +144,16 @@ def data_quality_review():
                 st.dataframe(filtered_response)
             else:
                 st.warning("No data available for the selected filter criteria.")
+        with st.expander("GPS LOCATION ANALYSIS"):
+            geo_column = st.selectbox("Select GPS Locations Column", available_columns)
+
+            if st.button("Add Location Data"):
+                # Apply the function and update the DataFrame
+                updated_df = add_location_columns(filtered_data, geo_column)
+                
+                st.write("Updated DataFrame with Location Columns:")
+                st.dataframe(updated_df)
+
     else:
         st.warning("No data available for the selected option.")
 

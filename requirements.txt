@@ -6,3 +6,4 @@ plotly
 koboextractor
 openpyxl
 seaborn
+geopy
