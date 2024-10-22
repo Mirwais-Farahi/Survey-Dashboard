@@ -65,7 +65,8 @@ def identify_outliers(df, column):
 
 def filter_short_surveys(df, start_column, end_column):
     """
-    Function to calculate the duration of surveys and filter those that took less than 25 minutes.
+    Function to calculate the duration of surveys and filter those that took less than 25 minutes,
+    returning all columns except those that contain only null values, along with the duration column.
     
     Parameters:
     df (DataFrame): The DataFrame containing survey data.
@@ -73,16 +74,27 @@ def filter_short_surveys(df, start_column, end_column):
     end_column (str): The name of the column with end dates.
     
     Returns:
-    DataFrame: A DataFrame containing surveys that took less than 25 minutes.
+    DataFrame: A DataFrame with all columns except those containing only null values, and the duration column.
     """
     # Ensure the start and end columns are in datetime format
-    df[start_column] = pd.to_datetime(df[start_column], errors='coerce')
-    df[end_column] = pd.to_datetime(df[end_column], errors='coerce')
+    df[start_column] = pd.to_datetime(df[start_column], errors='coerce').dt.tz_localize(None)
+    df[end_column] = pd.to_datetime(df[end_column], errors='coerce').dt.tz_localize(None)
 
     # Calculate duration in minutes
     df['duration'] = (df[end_column] - df[start_column]).dt.total_seconds() / 60.0
 
-    # Filter surveys that took less than 30 minutes+
+    # Filter surveys that took less than 30 minutes
     short_surveys = df[abs(df['duration']) < 30]
 
-    return short_surveys
+    # Remove columns that contain only null values
+    filtered_df = short_surveys.dropna(axis=1, how='all')
+
+    return filtered_df
+
+# Function to get unique responses for a selected question
+def get_unique_responses(df, question):
+    return df[question].unique()
+
+# Function to filter responses
+def filter_responses(df, first_question, second_question, first_response, second_response):
+    return df[(df[first_question] == first_response) & (df[second_question] == second_response)].dropna(axis=1, how='all')

@@ -2,7 +2,8 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 from data_loader import load_dataset
 from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot, plot_time_series
-from data_analysis import calculate_statistics, filter_data, apply_filters, filter_short_surveys
+from data_analysis import calculate_statistics, filter_data, apply_filters, filter_short_surveys, get_unique_responses, filter_responses
+
 from streamlit_extras.metric_cards import style_metric_cards
 from datetime import datetime
 
@@ -128,6 +129,21 @@ def data_quality_review():
         else:
             st.warning("Please select exactly two columns for the start and end dates.")
 
+        with st.expander("DATA INCONSISTENCY ANALYSIS"):
+            first_question = st.selectbox("Select First Question", available_columns)
+            first_response = st.selectbox("Select First Response", get_unique_responses(filtered_data, first_question))
+
+            second_question = st.selectbox("Select Second Question", available_columns)
+            second_response = st.selectbox("Select Second Response", get_unique_responses(filtered_data, second_question))
+
+            # Filter DataFrame
+            if st.button("Apply Filter"):
+                filtered_response = filter_responses(filtered_data, first_question, second_question, first_response, second_response)
+                
+                st.write("Filtered Data:")
+                st.dataframe(filtered_response)
+            else:
+                st.warning("No data available for the selected filter criteria.")
     else:
         st.warning("No data available for the selected option.")
 
