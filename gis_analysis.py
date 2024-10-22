@@ -1,9 +1,9 @@
 import pandas as pd
 from geopy.geocoders import Nominatim
-import streamlit as st
+import time
 
-# Initialize the geolocator
-geolocator = Nominatim(user_agent="geoapiExercises")
+# Initialize the geolocator with a specific user agent for Afghanistan
+geolocator = Nominatim(user_agent="afghanistan_geoapi")
 
 def add_location_columns(df, geo_column, retries=3, delay=2):
     provinces = []
