@@ -1,8 +1,10 @@
 import streamlit as st
+import pandas as pd
 from streamlit_option_menu import option_menu
 from data_loader import load_dataset
 from gis_analysis import add_location_columns
-from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot, plot_time_series
+from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot, plot_time_series, visualize_eligibility
+
 from data_analysis import calculate_statistics, filter_data, apply_filters, filter_short_surveys, get_unique_responses, filter_responses
 from streamlit_extras.metric_cards import style_metric_cards
 from datetime import datetime
@@ -157,6 +159,29 @@ def data_quality_review():
     else:
         st.warning("No data available for the selected option.")
 
+def baseline_eligibility_analysis():
+    global dataset_load
+
+    if dataset_load is not None and not dataset_load.empty:
+        st.success(f"{st.session_state.selected_option} dataset loaded successfully!")
+
+        available_columns = dataset_load.columns.tolist()
+        selected_columns = st.multiselect("Select Intervention to filter:", available_columns, key="baseline_eligibility_analysis")
+
+        # Filter data dynamically
+        filters = filter_data(dataset_load, selected_columns)
+
+        # Use unique keys for each filter multiselect
+        for column in filters.keys():
+            filters[column] = st.multiselect(f"Select values for {column}:", filters[column], key=f"filter_{column}")
+
+        # Apply filters and drop columns with only NaN values
+        filtered_data = apply_filters(dataset_load, filters).dropna(axis=1, how='all')
+
+        # Eligibility Criteria Checks
+        st.subheader("HH depends primarily on subsistence farming activities in targeted areas, and have access to 2-5 Jerib of irrigated cultivable land")
+        visualize_eligibility(filtered_data)
+        
 def sideBar():
     with st.sidebar:
         st.image("data/logo.png", use_column_width=True)
@@ -196,7 +221,7 @@ def sideBar():
 
 selected_option, submitted_after = sideBar()
 
-tab1, tab2 = st.tabs(["Tracker", "Data Quality Review"])
+tab1, tab2, tab3 = st.tabs(["Tracker", "Data Quality Review", "Baseline Eligibility Analysis"])
 
 with tab1:
     if selected_option == "Home":
@@ -211,3 +236,12 @@ with tab2:
     elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
         load_data(selected_option, submitted_after)  # Load the dataset
     data_quality_review()
+
+with tab3:
+    if selected_option == "Home":
+        home()
+    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+        load_data(selected_option, submitted_after)  # Load the dataset
+        # Run baseline eligibility analysis only for Baseline 1, 2, or 3
+        if selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3"]:
+            baseline_eligibility_analysis()

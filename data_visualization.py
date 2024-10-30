@@ -142,3 +142,65 @@ def plot_time_series(data):
 
         # Display the plot in Streamlit
         st.pyplot(fig)
+
+
+####################################################
+def visualize_eligibility(filtered_data):
+    # Convert the irrigated land column to numeric
+    filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"] = pd.to_numeric(
+        filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"].astype(str), errors='coerce'
+    )
+
+    # Determine eligibility
+    filtered_data['eligibility'] = (
+        (filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"] >= 2) &
+        (filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"] <= 5)
+    )
+
+    # Count eligible and non-eligible households by district
+    district_counts = filtered_data.groupby(['gen_info/district', 'eligibility']).size().unstack(fill_value=0)
+
+    # Reset the index to get a DataFrame
+    district_counts = district_counts.reset_index()
+    district_counts.columns = ['gen_info/district', 'Non-Eligible', 'Eligible']  # Rename columns for clarity
+
+    # Set up the figure with subplots
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+    # Horizontal Bar Chart for Eligible and Non-Eligible Households
+    district_counts_melted = district_counts.melt(id_vars='gen_info/district', value_vars=['Eligible', 'Non-Eligible'], 
+                                                    var_name='Eligibility Status', value_name='Count')
+
+    sns.barplot(data=district_counts_melted, x='Count', y='gen_info/district', hue='Eligibility Status', ax=axes[0])
+    axes[0].set_title('Eligible and Non-Eligible Households by District (Horizontal Bar Chart)')
+    axes[0].set_xlabel('Number of Households')
+    axes[0].set_ylabel('District')
+    axes[0].legend(title='Eligibility Status')
+
+        # Pie Chart for total household counts (optional)
+    total_counts = filtered_data['eligibility'].value_counts()
+    axes[1].pie(total_counts, labels=total_counts.index.map({True: 'Eligible', False: 'Not Eligible'}),
+                 autopct='%1.1f%%', startangle=90)
+    axes[1].axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
+    axes[1].set_title('Total Households by Eligibility (Pie Chart)')
+
+    # Adding eligibility criteria description
+    criteria_description = (
+        "Eligibility Criteria:\n"
+        "Irrigated Land: 2 to 5 acres"
+    )
+
+    # Positioning the text at the bottom center of the pie chart
+    axes[1].text(0.5, -0.1, criteria_description, ha='center', va='center', fontsize=10, transform=axes[1].transAxes)
+
+
+    # Histogram of irrigated land
+    sns.histplot(filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"], bins=10, ax=axes[2], kde=True)
+    axes[2].set_title('Distribution of Cultivable Irrigated Land (Histogram)')
+    axes[2].set_xlabel('Cultivable Irrigated Land (Jeribs)')
+    axes[2].set_ylabel('Frequency')
+
+    plt.tight_layout()
+
+    # Display the plot in Streamlit
+    st.pyplot(fig)
