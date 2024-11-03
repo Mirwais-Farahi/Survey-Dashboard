@@ -155,7 +155,6 @@ def data_quality_review():
                 
                 st.write("Updated DataFrame with Location Columns:")
                 st.dataframe(updated_df)
-
     else:
         st.warning("No data available for the selected option.")
 
