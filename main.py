@@ -187,14 +187,14 @@ def sideBar():
         st.image("data/logo.png", use_column_width=True)
         selected = option_menu(
             menu_title="Projects",
-            options=["Home", "LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"],
-            icons=["house", "eye", "eye", "eye", "eye", "book"],
+            options=["Home", "LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - IP-PDM", "LTA - PHM"],
+            icons=["house", "eye", "eye", "eye", "eye", "eye", "book"],
             menu_icon="cast",
             default_index=0
         )
         st.session_state.selected_option = selected
 
-        if selected in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+        if selected in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - IP-PDM", "LTA - PHM"]:
             st.subheader("Submission Date")
             submitted_after = st.date_input(
                 "Select date from which to load data:",
@@ -216,6 +216,8 @@ def sideBar():
             st.info("Post-distribution Monitoring")
         elif selected == "LTA - PHM":
             st.info("Post-harvest Monitoring")
+        elif selected == "LTA - IP-PDM":
+            st.info("IP Level Post-distribution Monitoring")
 
     return selected, st.session_state.submitted_after
 
@@ -226,14 +228,14 @@ tab1, tab2, tab3 = st.tabs(["Tracker", "Data Quality Review", "Baseline Eligibil
 with tab1:
     if selected_option == "Home":
         home()
-    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - IP-PDM", "LTA - PHM"]:
         load_data(selected_option, submitted_after)  # Load the dataset
         tracker()  # Now display the loaded data
 
 with tab2:
     if selected_option == "Home":
         home()
-    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - PHM"]:
+    elif selected_option in ["LTA - Baseline 1", "LTA - Baseline 2", "LTA - Baseline 3", "LTA - PDM", "LTA - IP-PDM", "LTA - PHM"]:
         load_data(selected_option, submitted_after)  # Load the dataset
     data_quality_review()
 
