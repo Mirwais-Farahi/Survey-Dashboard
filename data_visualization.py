@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import random
 import matplotlib.pyplot as plt
@@ -145,58 +146,65 @@ def plot_time_series(data):
 
 
 ####################################################
-def visualize_eligibility(filtered_data):
-    # Convert the irrigated land column to numeric
-    filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"] = pd.to_numeric(
-        filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"].astype(str), errors='coerce'
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import streamlit as st
+
+def visualize_eligibility(filtered_data, parameters):
+    # Extract eligibility column and range from parameters
+    eligibility_column = parameters.get("eligibility_column")
+    eligibility_range = parameters.get("eligibility_range", (2, 5))  # Default to (2, 5) if not provided
+    criteria_description = parameters.get("criteria_description", "")
+
+    if eligibility_column not in filtered_data.columns:
+        print(f"Error: Column '{eligibility_column}' not found in the data.")
+        return  # Exit if column is missing
+
+    # Convert the specified eligibility column to numeric
+    filtered_data[eligibility_column] = pd.to_numeric(
+        filtered_data[eligibility_column].astype(str), errors='coerce'
     )
 
-    # Determine eligibility
+    # Determine eligibility based on the range
+    min_eligible, max_eligible = eligibility_range
     filtered_data['eligibility'] = (
-        (filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"] >= 2) &
-        (filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"] <= 5)
+        (filtered_data[eligibility_column] >= min_eligible) &
+        (filtered_data[eligibility_column] <= max_eligible)
     )
 
     # Count eligible and non-eligible households by district
     district_counts = filtered_data.groupby(['gen_info/district', 'eligibility']).size().unstack(fill_value=0)
-
-    # Reset the index to get a DataFrame
     district_counts = district_counts.reset_index()
-    district_counts.columns = ['gen_info/district', 'Non-Eligible', 'Eligible']  # Rename columns for clarity
+    district_counts.columns = ['gen_info/district', 'Non-Eligible', 'Eligible']
 
     # Set up the figure with subplots
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-    # Horizontal Bar Chart for Eligible and Non-Eligible Households
-    district_counts_melted = district_counts.melt(id_vars='gen_info/district', value_vars=['Eligible', 'Non-Eligible'], 
-                                                    var_name='Eligibility Status', value_name='Count')
-
+    # Horizontal Bar Chart for Eligible and Non-Eligible Households by District
+    district_counts_melted = district_counts.melt(id_vars='gen_info/district', 
+                                                  value_vars=['Eligible', 'Non-Eligible'], 
+                                                  var_name='Eligibility Status', 
+                                                  value_name='Count')
     sns.barplot(data=district_counts_melted, x='Count', y='gen_info/district', hue='Eligibility Status', ax=axes[0])
-    axes[0].set_title('Eligible and Non-Eligible Households by District (Horizontal Bar Chart)')
+    axes[0].set_title('Eligible and Non-Eligible Households by District')
     axes[0].set_xlabel('Number of Households')
     axes[0].set_ylabel('District')
     axes[0].legend(title='Eligibility Status')
 
-        # Pie Chart for total household counts (optional)
+    # Pie Chart for total household counts
     total_counts = filtered_data['eligibility'].value_counts()
     axes[1].pie(total_counts, labels=total_counts.index.map({True: 'Eligible', False: 'Not Eligible'}),
-                 autopct='%1.1f%%', startangle=90)
+                autopct='%1.1f%%', startangle=90)
     axes[1].axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
     axes[1].set_title('Total Households by Eligibility (Pie Chart)')
 
-    # Adding eligibility criteria description
-    criteria_description = (
-        "Eligibility Criteria:\n"
-        "Irrigated Land: 2 to 5 acres"
-    )
-
-    # Positioning the text at the bottom center of the pie chart
+    # Adding eligibility criteria description below pie chart
     axes[1].text(0.5, -0.1, criteria_description, ha='center', va='center', fontsize=10, transform=axes[1].transAxes)
 
-
-    # Histogram of irrigated land
-    sns.histplot(filtered_data["part_2_wheat/part_2_agriculture/part_2_irrigated_land"], bins=10, ax=axes[2], kde=True)
-    axes[2].set_title('Distribution of Cultivable Irrigated Land (Histogram)')
+    # Histogram of irrigated land distribution
+    sns.histplot(filtered_data[eligibility_column], bins=10, ax=axes[2], kde=True)
+    axes[2].set_title('Distribution of Cultivable Irrigated Land')
     axes[2].set_xlabel('Cultivable Irrigated Land (Jeribs)')
     axes[2].set_ylabel('Frequency')
 
@@ -204,3 +212,88 @@ def visualize_eligibility(filtered_data):
 
     # Display the plot in Streamlit
     st.pyplot(fig)
+
+def show_eligibility_table(data, parameters):
+    # Unpack parameters
+    eligibility_column = parameters['eligibility_column']
+    eligibility_range = parameters['eligibility_range']
+    criteria_description = parameters['criteria_description']
+    
+    # Convert columns to numeric, summing multiple columns if needed
+    if isinstance(eligibility_column, list):
+        # Sum the specified columns, with error coercion to ensure numeric conversion
+        data['eligibility_sum'] = data[eligibility_column].apply(pd.to_numeric, errors='coerce').sum(axis=1)
+        column_to_check = 'eligibility_sum'
+    else:
+        # Convert a single column to numeric, coercing errors to NaN
+        data[eligibility_column] = pd.to_numeric(data[eligibility_column], errors='coerce')
+        column_to_check = eligibility_column
+
+    # Create a list to hold the results for each province and district
+    results_list = []
+
+    # Group by province and district
+    grouped_data = data.groupby(['gen_info/province', 'gen_info/district'])
+
+    # Calculate metrics for each group
+    for (province, district), group in grouped_data:
+        total_households = len(group)
+        
+        # Calculate eligible households based on the eligibility range
+        eligible_households = group[
+            (group[column_to_check] >= eligibility_range[0]) & 
+            (group[column_to_check] <= eligibility_range[1])
+        ].shape[0]
+
+        # Calculate the percentages
+        percentage_eligible = (eligible_households / total_households) * 100 if total_households > 0 else 0
+        percentage_not_eligible = 100 - percentage_eligible
+        
+        # Append results to the list
+        results_list.append({
+            'Province': province,
+            'District': district,
+            'Total HHs': total_households,
+            'Eligible (%)': round(percentage_eligible, 2),
+            'Not Eligible (%)': round(percentage_not_eligible, 2)
+        })
+
+    # Create a DataFrame from the results list
+    results = pd.DataFrame(results_list)
+
+    # Display the criteria description with styled background and text color
+    st.markdown(
+        f"<h4 style='background-color: #228B22; color: white; margin-top: 10px; margin-bottom: 10px; padding: 5px; border-radius: 5px;'>{criteria_description}</h2>",
+        unsafe_allow_html=True
+    )
+
+    # Return the results for further use
+    return results
+
+def visualize_eligibility(results):
+    # Aggregate results by Province
+    province_summary = results.groupby('Province').agg(
+        Total_HHs=('Total HHs', 'sum'),
+        Eligible_Percentage=('Eligible (%)', 'mean'),
+        Not_Eligible_Percentage=('Not Eligible (%)', 'mean')
+    ).reset_index()
+
+    # Generate random colors for the bars
+    eligible_color = np.random.rand(3,)
+    not_eligible_color = np.random.rand(3,)
+
+    # Visualize the eligibility data using Matplotlib
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Create horizontal bar charts for eligible and not eligible households
+    ax.barh(province_summary['Province'], province_summary['Eligible_Percentage'], 
+            color=eligible_color, label='Eligible (%)')
+    ax.barh(province_summary['Province'], province_summary['Not_Eligible_Percentage'], 
+            left=province_summary['Eligible_Percentage'], 
+            color=not_eligible_color, alpha=0.5, label='Not Eligible (%)')
+
+    ax.set_xlabel('Percentage of Households')
+    ax.set_title('Household Eligibility Visualization by Province')
+    ax.legend()
+
+    st.pyplot(fig)  # Render the plot in Streamlit

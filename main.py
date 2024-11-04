@@ -3,7 +3,7 @@ import pandas as pd
 from streamlit_option_menu import option_menu
 from data_loader import load_dataset
 from gis_analysis import add_location_columns
-from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot, plot_time_series, visualize_eligibility
+from data_visualization import group_by_visualize_and_download, display_group_by_table, plot_boxplot, plot_time_series, show_eligibility_table, visualize_eligibility
 
 from data_analysis import calculate_statistics, filter_data, apply_filters, filter_short_surveys, get_unique_responses, filter_responses
 from streamlit_extras.metric_cards import style_metric_cards
@@ -165,7 +165,7 @@ def baseline_eligibility_analysis():
         st.success(f"{st.session_state.selected_option} dataset loaded successfully!")
 
         available_columns = dataset_load.columns.tolist()
-        selected_columns = st.multiselect("Select Intervention to filter:", available_columns, key="baseline_eligibility_analysis")
+        selected_columns = st.multiselect("Apply filter:", available_columns, key="baseline_eligibility_analysis")
 
         # Filter data dynamically
         filters = filter_data(dataset_load, selected_columns)
@@ -177,9 +177,63 @@ def baseline_eligibility_analysis():
         # Apply filters and drop columns with only NaN values
         filtered_data = apply_filters(dataset_load, filters).dropna(axis=1, how='all')
 
-        # Eligibility Criteria Checks
-        st.subheader("HH depends primarily on subsistence farming activities in targeted areas, and have access to 2-5 Jerib of irrigated cultivable land")
-        visualize_eligibility(filtered_data)
+        # Define parameters for both interventions in a single dictionary
+        parameters = {
+            "Wheat": {
+                "eligibility_criteria": [
+                    {
+                        "eligibility_column": "part_2_wheat/part_2_agriculture/part_2_irrigated_land",
+                        "eligibility_range": (2, 5),
+                        "criteria_description": "Household Dependence on Subsistence Farming with Access to 2-5 Jeribs of Irrigated Land"
+                    },
+                    {
+                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk"],  # Specify multiple FCS columns
+                        "eligibility_range": (4, 8),
+                        "criteria_description": "Household Food Consumption Scores: Poor to Borderline"
+                    }
+                ]
+            },
+            "Livestock": {
+                "eligibility_criteria": [
+                    {
+                        "eligibility_column": "part_2_livestock/part_2_agriculture/part_2_livestock_access",
+                        "eligibility_range": (1, 3),
+                        "criteria_description": "Livestock Access: 1 to 3 animals"
+                    },
+                    {
+                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk"],  # Specify multiple FCS columns
+                        "eligibility_range": (4, 8),
+                        "criteria_description": "Household Food Consumption Scores: Poor to Borderline"
+                    }
+                ]
+            }
+        }
+
+        # Dropdown selection for intervention type
+        intervention_type = st.selectbox("Select Intervention Type:", options=list(parameters.keys()))
+
+        # Display eligibility criteria based on the selected intervention type
+        st.markdown(
+            f"<h4 style='background-color: #E0F7FA; padding: 10px; border-radius: 5px;'>{intervention_type} Intervention Eligibility Criteria</h2>",
+            unsafe_allow_html=True
+        )
+        for criterion in parameters[intervention_type]["eligibility_criteria"]:
+            results = show_eligibility_table(filtered_data, criterion)
+
+            # Create two columns to show the table and visualization side by side
+            col1, col2 = st.columns(2)  # Create two columns
+
+            # Show the table in the first column
+            with col1:
+                st.dataframe(results.style.format({"Percentage Eligible": "{:.2f}"}))
+
+            # Show the visualization in the second column
+            with col2:
+                visualize_eligibility(results)
+        # Call the function
+        #fig = visualize_eligibility(filtered_data, parameters)
+        #if fig:
+         #   st.pyplot(fig)
         
 def sideBar():
     with st.sidebar:
