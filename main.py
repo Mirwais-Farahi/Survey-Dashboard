@@ -187,8 +187,8 @@ def baseline_eligibility_analysis():
                         "criteria_description": "Household Dependence on Subsistence Farming with Access to 2-5 Jeribs of Irrigated Land"
                     },
                     {
-                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk"],  # Specify multiple FCS columns
-                        "eligibility_range": (4, 8),
+                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk", "fcs/meat", "fcs/veg", "fcs/fruit", "fcs/oil", "fcs/sugar"],
+                        "eligibility_range": (0, 42),
                         "criteria_description": "Household Food Consumption Scores: Poor to Borderline"
                     }
                 ]
@@ -201,7 +201,7 @@ def baseline_eligibility_analysis():
                         "criteria_description": "Livestock Access: 1 to 3 animals"
                     },
                     {
-                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk"],  # Specify multiple FCS columns
+                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk", "fcs/meat", "fcs/veg", "fcs/fruit", "fcs/oil", "fcs/sugar"],
                         "eligibility_range": (4, 8),
                         "criteria_description": "Household Food Consumption Scores: Poor to Borderline"
                     }
@@ -218,7 +218,7 @@ def baseline_eligibility_analysis():
             unsafe_allow_html=True
         )
         for criterion in parameters[intervention_type]["eligibility_criteria"]:
-            results = show_eligibility_table(filtered_data, criterion)
+            results, non_eligible_households = show_eligibility_table(filtered_data, criterion)
 
             # Create two columns to show the table and visualization side by side
             col1, col2 = st.columns(2)  # Create two columns
@@ -230,6 +230,9 @@ def baseline_eligibility_analysis():
             # Show the visualization in the second column
             with col2:
                 visualize_eligibility(results)
+            # Display non-eligible households
+            with st.expander("Non-eligible Households"):
+                st.dataframe(non_eligible_households)
         # Call the function
         #fig = visualize_eligibility(filtered_data, parameters)
         #if fig:

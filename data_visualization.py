@@ -146,11 +146,6 @@ def plot_time_series(data):
 
 
 ####################################################
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import streamlit as st
-
 def visualize_eligibility(filtered_data, parameters):
     # Extract eligibility column and range from parameters
     eligibility_column = parameters.get("eligibility_column")
@@ -235,6 +230,9 @@ def show_eligibility_table(data, parameters):
     # Group by province and district
     grouped_data = data.groupby(['gen_info/province', 'gen_info/district'])
 
+    # Initialize a DataFrame for non-eligible households
+    non_eligible_households = pd.DataFrame()
+
     # Calculate metrics for each group
     for (province, district), group in grouped_data:
         total_households = len(group)
@@ -258,17 +256,25 @@ def show_eligibility_table(data, parameters):
             'Not Eligible (%)': round(percentage_not_eligible, 2)
         })
 
+        # Filter non-eligible households in the current group
+        non_eligible_group = group[
+            (group[column_to_check] < eligibility_range[0]) | 
+            (group[column_to_check] > eligibility_range[1])
+        ]
+        # Append non-eligible households for each group
+        non_eligible_households = pd.concat([non_eligible_households, non_eligible_group], ignore_index=True)
+
     # Create a DataFrame from the results list
     results = pd.DataFrame(results_list)
 
     # Display the criteria description with styled background and text color
     st.markdown(
-        f"<h4 style='background-color: #228B22; color: white; margin-top: 10px; margin-bottom: 10px; padding: 5px; border-radius: 5px;'>{criteria_description}</h2>",
+        f"<h4 style='background-color: #228B22; color: white; margin-top: 10px; margin-bottom: 10px; padding: 5px; border-radius: 5px;'>{criteria_description}</h4>",
         unsafe_allow_html=True
     )
 
-    # Return the results for further use
-    return results
+    # Return the results and non-eligible households for further use
+    return results, non_eligible_households
 
 def visualize_eligibility(results):
     # Aggregate results by Province
