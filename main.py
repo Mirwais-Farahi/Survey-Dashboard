@@ -246,19 +246,15 @@ def baseline_eligibility_analysis():
                 with col2:
                     visualize_eligibility(results)
 
-                # Check conditions and display DataFrames accordingly
-                if non_eligible_households.empty and not null_households.empty:
-                    with st.expander("Eligibility Criteria Null Values"):
-                        st.dataframe(null_households)
-                elif not non_eligible_households.empty and not null_households.empty:
+                # Display non-eligible households if they exist
+                if not non_eligible_households.empty:
                     with st.expander("Non-eligible Households"):
                         st.dataframe(non_eligible_households)
+
+                # Display null households if they exist
+                if not null_households.empty:
                     with st.expander("Eligibility Criteria Null Values"):
                         st.dataframe(null_households)
-                else:
-                    # Display non-eligible households if none of the conditions are met
-                    with st.expander("Non-eligible Households"):
-                        st.dataframe(non_eligible_households)
 
                 # Calculate the average percentage of eligible households across all provinces
                 avg_percentage_eligible = results['Eligible (%)'].mean()
