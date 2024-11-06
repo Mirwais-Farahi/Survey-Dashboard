@@ -187,6 +187,11 @@ def baseline_eligibility_analysis():
                         "criteria_description": "Household Dependence on Subsistence Farming with Access to 2-5 Jeribs of Irrigated Land"
                     },
                     {
+                        "eligibility_column": "part_2_wheat/part_2_agriculture/part_2_access_seed",
+                        "eligibility_value": "no",
+                        "criteria_description": "Households with No Access to Improved Wheat Seeds"
+                    },
+                    {
                         "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk", "fcs/meat", "fcs/veg", "fcs/fruit", "fcs/oil", "fcs/sugar"],
                         "eligibility_range": (0, 42),
                         "criteria_description": "Household Food Consumption Scores: Poor to Borderline"
@@ -196,9 +201,14 @@ def baseline_eligibility_analysis():
             "Livestock": {
                 "eligibility_criteria": [
                     {
-                        "eligibility_column": "part_2_livestock/part_2_agriculture/part_2_livestock_access",
-                        "eligibility_range": (1, 3),
-                        "criteria_description": "Livestock Access: 1 to 3 animals"
+                        "eligibility_column": "part_1_livestock/part_1_livestock_sub_section/part_1_main_livelihood",
+                        "eligibility_value": "yes",
+                        "criteria_description": "HH Depends Primarily on subsistence Livestock Farming Activities"
+                    },
+                    {
+                        "eligibility_column": "part_1_livestock/part_1_livestock_sub_section/part_1_access_animal_feed",
+                        "eligibility_value": "no",
+                        "criteria_description": "Households with No Access to Livestock Feed"
                     },
                     {
                         "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk", "fcs/meat", "fcs/veg", "fcs/fruit", "fcs/oil", "fcs/sugar"],
@@ -209,30 +219,82 @@ def baseline_eligibility_analysis():
             }
         }
 
-        # Dropdown selection for intervention type
-        intervention_type = st.selectbox("Select Intervention Type:", options=list(parameters.keys()))
+        # Dropdown selection for intervention type with an initially empty option
+        intervention_type = st.selectbox("Select Intervention Type:", options=[""] + list(parameters.keys()))
 
-        # Display eligibility criteria based on the selected intervention type
-        st.markdown(
-            f"<h4 style='background-color: #E0F7FA; padding: 10px; border-radius: 5px;'>{intervention_type} Intervention Eligibility Criteria</h2>",
-            unsafe_allow_html=True
-        )
-        for criterion in parameters[intervention_type]["eligibility_criteria"]:
-            results, non_eligible_households = show_eligibility_table(filtered_data, criterion)
+        # Display eligibility criteria based on the selected intervention type, only if a valid type is selected
+        if intervention_type:
+            st.markdown(
+                f"<h4 style='background-color: #E0F7FA; padding: 10px; border-radius: 5px;'>{intervention_type} Intervention Eligibility Criteria</h2>",
+                unsafe_allow_html=True
+            )
 
-            # Create two columns to show the table and visualization side by side
-            col1, col2 = st.columns(2)  # Create two columns
+            # List to hold average results
+            average_results = []
 
-            # Show the table in the first column
-            with col1:
-                st.dataframe(results.style.format({"Percentage Eligible": "{:.2f}"}))
+            for criterion in parameters[intervention_type]["eligibility_criteria"]:
+                results, non_eligible_households, null_households = show_eligibility_table(filtered_data, criterion)
 
-            # Show the visualization in the second column
-            with col2:
-                visualize_eligibility(results)
-            # Display non-eligible households
-            with st.expander("Non-eligible Households"):
-                st.dataframe(non_eligible_households)
+                # Create two columns to show the table and visualization side by side
+                col1, col2 = st.columns(2)
+
+                # Show the table in the first column
+                with col1:
+                    st.dataframe(results.style.format({"Percentage Eligible": "{:.2f}"}))
+
+                # Show the visualization in the second column
+                with col2:
+                    visualize_eligibility(results)
+
+                # Check conditions and display DataFrames accordingly
+                if non_eligible_households.empty and not null_households.empty:
+                    with st.expander("Eligibility Criteria Null Values"):
+                        st.dataframe(null_households)
+                elif not non_eligible_households.empty and not null_households.empty:
+                    with st.expander("Non-eligible Households"):
+                        st.dataframe(non_eligible_households)
+                    with st.expander("Eligibility Criteria Null Values"):
+                        st.dataframe(null_households)
+                else:
+                    # Display non-eligible households if none of the conditions are met
+                    with st.expander("Non-eligible Households"):
+                        st.dataframe(non_eligible_households)
+
+                # Calculate the average percentage of eligible households across all provinces
+                avg_percentage_eligible = results['Eligible (%)'].mean()
+
+                # Add to the list of average results
+                average_results.append({
+                    'Criteria': criterion['criteria_description'],
+                    'Average Eligible (%)': avg_percentage_eligible
+                })
+
+            # Final section: Show average percentages across all criteria
+            if average_results:
+                st.markdown(
+                        "<h4 style='background-color: #FFEB3B; margin-bottom: 10px; padding: 10px; border-radius: 5px;'>Average Percentage for Each Eligibility Criteria</h4>",
+                        unsafe_allow_html=True
+                    )
+                # Convert the list of averages to a DataFrame
+                avg_df = pd.DataFrame(average_results)
+
+                # Create two columns for the table and chart
+                col1, col2 = st.columns(2)
+                # Display the table in the first column
+                with col1:
+                    st.dataframe(avg_df.style.format({"Average Eligible (%)": "{:.2f}"}))
+
+                # Show the horizontal bar chart in the second column
+                with col2:
+                    # Create a horizontal bar chart with random colors
+                    chart_data = avg_df.set_index('Criteria')['Average Eligible (%)']
+                    st.bar_chart(chart_data, color="#408BBE")
+        else:
+            st.markdown(
+                f"<h4 style='background-color: #E0F7FA; padding: 10px; border-radius: 5px;'>No Intervention type Is Selected</h2>",
+                unsafe_allow_html=True
+            )
+                
         # Call the function
         #fig = visualize_eligibility(filtered_data, parameters)
         #if fig:

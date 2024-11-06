@@ -211,41 +211,72 @@ def visualize_eligibility(filtered_data, parameters):
 def show_eligibility_table(data, parameters):
     # Unpack parameters
     eligibility_column = parameters['eligibility_column']
-    eligibility_range = parameters['eligibility_range']
+    eligibility_value = parameters.get('eligibility_value')
+    eligibility_range = parameters.get('eligibility_range')
     criteria_description = parameters['criteria_description']
     
-    # Convert columns to numeric, summing multiple columns if needed
+    # If eligibility_column is a list, sum the values after converting them to numeric
     if isinstance(eligibility_column, list):
-        # Sum the specified columns, with error coercion to ensure numeric conversion
+        # Convert columns to numeric, handling cases where values are stored as strings
         data['eligibility_sum'] = data[eligibility_column].apply(pd.to_numeric, errors='coerce').sum(axis=1)
         column_to_check = 'eligibility_sum'
     else:
-        # Convert a single column to numeric, coercing errors to NaN
+        # Convert a single column to numeric
         data[eligibility_column] = pd.to_numeric(data[eligibility_column], errors='coerce')
         column_to_check = eligibility_column
 
     # Create a list to hold the results for each province and district
     results_list = []
-
+    
     # Group by province and district
     grouped_data = data.groupby(['gen_info/province', 'gen_info/district'])
-
-    # Initialize a DataFrame for non-eligible households
+    
+    # Initialize DataFrames for non-eligible households and null values
     non_eligible_households = pd.DataFrame()
+    null_households = pd.DataFrame()
 
     # Calculate metrics for each group
     for (province, district), group in grouped_data:
         total_households = len(group)
+
+        # Strip leading and trailing spaces from the eligibility column
+        if isinstance(eligibility_column, list):
+            for col in eligibility_column:
+                if group[col].dtype == 'object':  # Check if column is of type object (string)
+                    group[col] = group[col].str.strip()  # Strip spaces
+        else:
+            if group[column_to_check].dtype == 'object':
+                group[column_to_check] = group[column_to_check].str.strip()
+
+        # Determine null values
+        null_group = group[group[column_to_check].isnull()]
+        non_null_group = group[~group[column_to_check].isnull()]
         
-        # Calculate eligible households based on the eligibility range
-        eligible_households = group[
-            (group[column_to_check] >= eligibility_range[0]) & 
-            (group[column_to_check] <= eligibility_range[1])
-        ].shape[0]
+        # Determine eligible and non-eligible households based on eligibility_value or eligibility_range
+        if eligibility_value is not None:
+            eligible_households = non_null_group[
+                non_null_group[column_to_check].astype(str).str.lower() == eligibility_value.lower()
+            ].shape[0]
+            non_eligible_group = non_null_group[
+                non_null_group[column_to_check].astype(str).str.lower() != eligibility_value.lower()
+            ]
+        elif eligibility_range is not None:
+            eligible_households = non_null_group[
+                (non_null_group[column_to_check] >= eligibility_range[0]) & 
+                (non_null_group[column_to_check] <= eligibility_range[1])
+            ].shape[0]
+            non_eligible_group = non_null_group[
+                (non_null_group[column_to_check] < eligibility_range[0]) | 
+                (non_null_group[column_to_check] > eligibility_range[1])
+            ]
+        else:
+            eligible_households = 0
+            non_eligible_group = non_null_group  # If no eligibility criteria are specified, all are non-eligible
 
         # Calculate the percentages
         percentage_eligible = (eligible_households / total_households) * 100 if total_households > 0 else 0
-        percentage_not_eligible = 100 - percentage_eligible
+        percentage_not_eligible = ((len(non_eligible_group) / total_households) * 100) if total_households > 0 else 0
+        percentage_null = ((len(null_group) / total_households) * 100) if total_households > 0 else 0
         
         # Append results to the list
         results_list.append({
@@ -253,16 +284,13 @@ def show_eligibility_table(data, parameters):
             'District': district,
             'Total HHs': total_households,
             'Eligible (%)': round(percentage_eligible, 2),
-            'Not Eligible (%)': round(percentage_not_eligible, 2)
+            'Not Eligible (%)': round(percentage_not_eligible, 2),
+            'Null Values (%)': round(percentage_null, 2)
         })
 
-        # Filter non-eligible households in the current group
-        non_eligible_group = group[
-            (group[column_to_check] < eligibility_range[0]) | 
-            (group[column_to_check] > eligibility_range[1])
-        ]
-        # Append non-eligible households for each group
+        # Append non-eligible and null households for each group
         non_eligible_households = pd.concat([non_eligible_households, non_eligible_group], ignore_index=True)
+        null_households = pd.concat([null_households, null_group], ignore_index=True)
 
     # Create a DataFrame from the results list
     results = pd.DataFrame(results_list)
@@ -273,8 +301,8 @@ def show_eligibility_table(data, parameters):
         unsafe_allow_html=True
     )
 
-    # Return the results and non-eligible households for further use
-    return results, non_eligible_households
+    # Return the results, non-eligible households, and null households for further use
+    return results, non_eligible_households, null_households
 
 def visualize_eligibility(results):
     # Aggregate results by Province
