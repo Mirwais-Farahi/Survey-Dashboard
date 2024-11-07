@@ -208,21 +208,32 @@ def visualize_eligibility(filtered_data, parameters):
     # Display the plot in Streamlit
     st.pyplot(fig)
 
+# Method to safely convert values
+def safe_convert(value):
+    # Try to convert the value to numeric; if it can't be converted, it will return NaN
+    converted_value = pd.to_numeric(value, errors='coerce')
+    
+    # If the conversion results in NaN, keep the original string
+    if pd.isna(converted_value):
+        return value
+    else:
+        return converted_value
+
 def show_eligibility_table(data, parameters):
     # Unpack parameters
     eligibility_column = parameters['eligibility_column']
     eligibility_value = parameters.get('eligibility_value')
     eligibility_range = parameters.get('eligibility_range')
     criteria_description = parameters['criteria_description']
-    
+
     # If eligibility_column is a list, sum the values after converting them to numeric
     if isinstance(eligibility_column, list):
         # Convert columns to numeric, handling cases where values are stored as strings
         data['eligibility_sum'] = data[eligibility_column].apply(pd.to_numeric, errors='coerce').sum(axis=1)
         column_to_check = 'eligibility_sum'
     else:
-        # Convert a single column to numeric
-        data[eligibility_column] = pd.to_numeric(data[eligibility_column], errors='coerce')
+        # Convert a single column using the safe_convert method
+        data[eligibility_column] = data[eligibility_column].apply(safe_convert)
         column_to_check = eligibility_column
 
     # Create a list to hold the results for each province and district
