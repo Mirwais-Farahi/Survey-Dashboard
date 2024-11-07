@@ -211,10 +211,68 @@ def baseline_eligibility_analysis():
                         "criteria_description": "Households with No Access to Livestock Feed"
                     },
                     {
+                        "eligibility_column": "part_1_livestock/part_1_livestock_basic_service/part_1_ngo_assistance_this_year",
+                        "eligibility_value": "no",
+                        "criteria_description": "HH Has Not Received Animal Feed Assistance This Year"
+                    },
+                    {
+                        "eligibility_column": ["part_1_livestock/part_1_livestock_sub_section/part_1_cattle", "part_1_livestock/part_1_livestock_sub_section/part_1_buffalo", "part_1_livestock/part_1_livestock_sub_section/part_1_goat_sheep", "part_1_livestock/part_1_livestock_sub_section/part_1_donkey_mule_horse", "part_1_livestock/part_1_livestock_sub_section/part_1_camel"],
+                        "eligibility_range": (1, 15),
+                        "criteria_description": "Household Must Have 1-15 Animals"
+                    },
+                    {
                         "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk", "fcs/meat", "fcs/veg", "fcs/fruit", "fcs/oil", "fcs/sugar"],
-                        "eligibility_range": (4, 8),
+                        "eligibility_range": (0, 42),
                         "criteria_description": "Household Food Consumption Scores: Poor to Borderline"
                     }
+                ]
+            },
+            "Vegetable_Home_Gardening": {
+                "eligibility_criteria": [
+                    {
+                        "eligibility_column": "gen_info/sex",
+                        "eligibility_value": "female",
+                        "criteria_description": "Permanent Female Headed Household or Temporary Female Headed Household"
+                    },
+                    {
+                        "eligibility_column": "part_3_hg/part_3_income/part_3_cultivate_veg_jerib",
+                        "eligibility_range": (0, 0.2),
+                        "criteria_description": "Households Having Access to a Backyard up to 400 sq.mt. (0.2) of Land"
+                    },
+                    {
+                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk", "fcs/meat", "fcs/veg", "fcs/fruit", "fcs/oil", "fcs/sugar"],
+                        "eligibility_range": (0, 42),
+                        "criteria_description": "Household Food Consumption Scores: Poor to Borderline"
+                    }    
+                ]
+            },
+            "Cash_for_Work": {
+                "eligibility_criteria": [
+                    {
+                        "eligibility_column": "gen_info/hh_head_age",
+                        "eligibility_range": (18, 64),
+                        "criteria_description": "Household have labour force within the HH, between 18 and 64 years old"
+                    },
+                    {
+                        "eligibility_column": "part_5_cfw/part_5_agriculture/part_5_irrigated_land",
+                        "eligibility_range": (0, 0.5),
+                        "criteria_description": "Household Having No Agricultural Productive Land, or 0.5 Jerib of Irrigated Land"
+                    },
+                    {
+                        "eligibility_column": "part_5_cfw/part_5_agriculture/part_5_rainfed_land",
+                        "eligibility_range": (0, 5),
+                        "criteria_description": "Household Having No Agricultural Productive Land, or 1 to 5 Jerib of Rain-fed Land"
+                    },
+                    {
+                        "eligibility_column": ["part_5_cfw/part_5_livestock/part_5_cattle", "part_5_cfw/part_5_livestock/part_5_buffalo", "part_5_cfw/part_5_livestock/part_5_goat_sheep", "part_5_cfw/part_5_livestock/part_5_donkey_mule_horse", "part_5_cfw/part_5_livestock/part_5_camel"],
+                        "eligibility_range": (0, 5),
+                        "criteria_description": "Household having no livestock or 5 Animals"
+                    },
+                    {
+                        "eligibility_column": ["fcs/cereals", "fcs/pulses", "fcs/milk", "fcs/meat", "fcs/veg", "fcs/fruit", "fcs/oil", "fcs/sugar"],
+                        "eligibility_range": (0, 28),
+                        "criteria_description": "Household Food Consumption Scores: Poor"
+                    }    
                 ]
             }
         }
